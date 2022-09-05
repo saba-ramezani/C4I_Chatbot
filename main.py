@@ -1278,4 +1278,25 @@ def if_tow_circle_overlaps(longitude1, longitude2, latitude1, latitude2, radius1
         return "The centers of the circles can be neither the same point nor antipodal points."
 
 
-create_training_set()
+# create_training_set()
+#
+c = conn.cursor()
+c.execute('''CREATE TABLE links
+            (ID1 INT not null,
+            ID2 INT not null,
+            type varchar not null,
+            online boolean not null,
+            channel varchar not null,
+            primary key (ID1, ID2),
+            foreign key (ID1, ID2) references barracks(ID, ID))''')
+conn.commit()
+#sql = "select * from links"
+#cursor = conn.cursor()
+#cursor.execute(sql)
+#rows = cursor.fetchall()
+#for row in rows:
+#   print(row)
+#cursor.close()
+#conn.commit()
+# conn.execute(sql)
+conn.close()
