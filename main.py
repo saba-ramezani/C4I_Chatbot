@@ -965,6 +965,40 @@ def create_training_set():
         }
         ner_intent_dict[text] = ner_dict
 
+    for i in range(1, 1001):
+        for key in rank:
+            # "تعداد سرهنگ های پادگان 1 چند تاست؟"
+            text = "تعداد " + str(key) + " های پادگان " + str(i) + "چندتاست؟"
+            train_dict = {
+                "text": text,
+                "slots": {"barracks_name_1": str(i),
+                          "rank": str(key)},
+                "query": {"intent": "get_count_of_barracks_staff_based_on_rank",
+                          "barracks_name_1": str(i),
+                          "rank": str(rank[key])}
+            }
+            train_list.append(train_dict)
+            ner_dict = {
+                "TEXT": text.split(),
+                "NERTAGS": [
+                    "O",
+                    "B-rank",
+                    "O",
+                    "O",
+                    "B-barracks_name",
+                    "O",
+                    "O"
+                ],
+                "NERVALS": {
+                    "barracks_name_1": str(i),
+                    "rank": str(rank[key])
+                },
+                "INTENTS": [
+                    "get_count_of_barracks_staff_based_on_rank"
+                ]
+            }
+            ner_intent_dict[text] = ner_dict
+
     for item in train_list:
         print(item)
     print(len(train_list))
