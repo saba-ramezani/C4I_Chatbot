@@ -53,27 +53,30 @@ print("database Opened successfully!")
 # "چند سنسور از نوع # مربوط به پادگان # وجود دارد؟"
 def get_sensor_count_based_on_sensor_type(sensor_type, barracks_ID):
     cursor = conn.cursor()
-    if sensor_type == "sensor":
-        cursor.execute("select count(*) from sensors \
-                 where barracks_ID=?", barracks_ID)
-    else:
-        cursor.execute("select count(*) from sensors \
-                 where type=? and barracks_ID=?", (sensor_type, barracks_ID))
-
+    cursor.execute("select count(*) from sensors \
+            where type=? and barracks_ID=?", (sensor_type, barracks_ID))
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        print(str(rows[0][0]))
+    else:
+        print("None")
     cursor.close()
 
 
 # "چند سنسور # مربوط به پادگان # وجود دارد؟"
-def get_sensor_count_based_on_sensor_status(sensor_status, barracks_ID):
+def get_sensor_count_based_on_sensor_status(sensor_type, sensor_status, barracks_ID):
     cursor = conn.cursor()
-    cursor.execute("select count(*) from sensors \
-                 where online=? and barracks_ID=?", (sensor_status, barracks_ID))
+    if sensor_type == "sensor":
+        cursor.execute("select count(*) from sensors \
+                   where online=? and barracks_ID=?", (sensor_status, barracks_ID))
+    else:
+        cursor.execute("select count(*) from sensors \
+                     where online=? and barracks_ID=? and type=?", (sensor_status, barracks_ID, sensor_type))
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        print(str(rows[0][0]))
+    else:
+        print("None")
     cursor.close()
 
 
@@ -83,8 +86,10 @@ def get_type_of_barracks(barracks_ID):
     cursor.execute("select type from barracks \
                  where ID=?", (barracks_ID,))
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        print(rows[0][0])
+    else:
+        print("This barracks doesnt exist!")
     cursor.close()
 
 
@@ -99,6 +104,8 @@ def is_barracks_insider(barracks_ID):
             print("Barracks " + str(barracks_ID) + " is insider!")
         elif rows[0][0] == 0:
             print("Barracks " + str(barracks_ID) + " is not insider!")
+    else:
+        print("This barracks doesnt exist!")
     cursor.close()
 
 
@@ -108,19 +115,27 @@ def get_coordinates_of_barracks(barracks_id):
     cursor.execute("select longitude, latitude from barracks \
                  where ID=?", (barracks_id,))
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        print("longitude= " + str(rows[0][0]) + " , latitude= " + str(rows[0][1]))
+    else:
+        print("There is no barracks with this name")
     cursor.close()
 
 
 # "آیپی سنسور # چیست؟"
-def get_sensor_IP(sensor_id):
+def get_sensor_IP(sensor_id, sensor_type):
     cursor = conn.cursor()
-    cursor.execute("select ip from sensors \
-                 where ID=?", (sensor_id,))
+    if sensor_type == "sensor":
+        cursor.execute("select ip from sensors \
+                     where ID=?", (sensor_id,))
+    else:
+        cursor.execute("select ip from sensors \
+                     where ID=? and type=?", (sensor_id, sensor_type))
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        print(rows[0][0])
+    else:
+        print("This sensor does not exist!")
     cursor.close()
 
 
@@ -130,30 +145,44 @@ def get_sensor_type(sensor_id):
     cursor.execute("select type from sensors \
                  where ID=?", (sensor_id,))
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        print(rows[0][0])
+    else:
+        print("This sensor doesnt exist!")
     cursor.close()
 
 
 # "مختصات جفرافیایی سنسور # چیست؟"
-def get_coordinates_of_sensor(sensor_id):
+def get_coordinates_of_sensor(sensor_id, sensor_type):
     cursor = conn.cursor()
-    cursor.execute("select longitude, latitude from sensors \
-                 where ID=?", (sensor_id,))
+    if sensor_type == "sensor":
+        cursor.execute("select longitude, latitude from sensors \
+                     where ID=?", (sensor_id,))
+    else:
+        cursor.execute("select longitude, latitude from sensors \
+                     where ID=? and type=?", (sensor_id, sensor_type))
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        print(rows[0][0])
+    else:
+        print("This sensor doesnt exist!")
     cursor.close()
 
 
 # "پارامترهای مربوط به سنسور # دارای چه مقادیری هستند؟"
-def get_all_parameters_of_sensor(sensor_id):
+def get_all_parameters_of_sensor(sensor_id, sensor_type):
     cursor = conn.cursor()
-    cursor.execute("select parameters from sensors \
-                 where ID=?", (sensor_id,))
+    if sensor_type == "sensor":
+        cursor.execute("select parameters from sensors \
+                     where ID=?", (sensor_id,))
+    else:
+        cursor.execute("select parameters from sensors \
+                     where ID=? and type=?", (sensor_id, sensor_type))
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        print(rows[0][0])
+    else:
+        print("This sensor doesnt exist!")
     cursor.close()
 
 
@@ -163,19 +192,28 @@ def get_enemy_barracks():
     cursor.execute("select ID from barracks \
                  where insider=0")
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        print(rows[0][0])
+    else:
+        print("There is no enemy barracks")
     cursor.close()
 
 
 # "سنسورهای دشمن در پادگان # کدامند؟"
-def get_enemy_sensors_based_on_barracks_id(barracks_id):
+def get_enemy_sensors_based_on_barracks_id(barracks_id, sensor_type):
     cursor = conn.cursor()
-    cursor.execute("select ID from sensors \
-                 where barracks_ID=? and insider=0", (barracks_id,))
+    if sensor_type == "sensor":
+        cursor.execute("select ID from sensors \
+                     where barracks_ID=? and insider=0", (barracks_id,))
+    else:
+        cursor.execute("select ID from sensors \
+                     where barracks_ID=? and type=? and insider=0", (barracks_id, sensor_type))
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        for row in rows:
+            print(row)
+    else:
+        print("Nothing found! ")
     cursor.close()
 
 
@@ -263,8 +301,11 @@ def get_sensors_status_based_on_location_and_sensor_type(area, sensor_type):
             cursor.execute("select ID,online from sensors \
                          where longitude > 1 and latitude > 1 and type=?", (sensor_type,))
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        for row in rows:
+            print(row)
+    else:
+        print("Nothing found")
     cursor.close()
 
 
@@ -284,7 +325,7 @@ def get_parameter_of_sensor_based_on_parameter_type(sensor_id, parameter, sensor
         parameter_dict = json.loads(rows[0][0])
         print(parameter_dict[str(parameter)])
     else:
-        print("Oops! This sensor doesnt exist")
+        print("This sensor doesnt exist!")
     cursor.close()
 
 
@@ -301,7 +342,6 @@ def check_if_two_sensors_interfere(sensor_id_1, sensor_id_2, sensor_type_1, sens
                 "latitude": rows[0][1],
                 "radius": rows[0][2]
             }
-            # print(dict1)
         else:
             print("This sensor doesnt exist!")
             return
@@ -314,7 +354,6 @@ def check_if_two_sensors_interfere(sensor_id_1, sensor_id_2, sensor_type_1, sens
                 "latitude": rows[0][1],
                 "radius": rows[0][2]
             }
-            # print(dict2)
         else:
             print("This sensor doesnt exist!")
             return
@@ -328,7 +367,6 @@ def check_if_two_sensors_interfere(sensor_id_1, sensor_id_2, sensor_type_1, sens
                 "latitude": rows[0][1],
                 "radius": rows[0][2]
             }
-            # print(dict1)
         else:
             print("This sensor doesnt exist!")
             return
@@ -341,7 +379,6 @@ def check_if_two_sensors_interfere(sensor_id_1, sensor_id_2, sensor_type_1, sens
                 "latitude": rows[0][1],
                 "radius": rows[0][2]
             }
-            # print(dict2)
         else:
             print("This sensor doesnt exist!")
             return
@@ -364,18 +401,18 @@ def get_all_sensors_that_do_not_interfere_based_on_sensor_type(sensor_type):
         cursor.execute("select * from sensors \
                      where type=?", (sensor_type,))
     rows = cursor.fetchall()
-    rows2 = rows.copy()
-    for i in rows:
-        for j in rows2:
-            if i[0] != j[0]:
-                if not if_tow_circle_overlaps(i[3], j[3], i[4], j[4], i[5], j[5]):
-                    print(i)
-                    print("and")
-                    print(j)
-                    print("********")
-    # print(type(rows))
-    # for row in rows:
-    #    print(row)
+    if rows:
+        rows2 = rows.copy()
+        for i in rows:
+            for j in rows2:
+                if i[0] != j[0]:
+                    if not if_tow_circle_overlaps(i[3], j[3], i[4], j[4], i[5], j[5]):
+                        print(i)
+                        print("and")
+                        print(j)
+                        print("********")
+    else:
+        print("Nothing found!")
     cursor.close()
 
 
@@ -385,8 +422,8 @@ def get_count_of_barracks_staff_based_on_rank(barracks_name, rank):
     cursor.execute("select count(name) from staff \
                  where barracks_ID=? and rank=?", (barracks_name, rank))
     rows = cursor.fetchall()
-    for row in rows:
-        print(row)
+    if rows:
+        print(rows[0][0])
     cursor.close()
 
 
@@ -397,8 +434,7 @@ def get_barracks_name_of_a_staff(staff_name, rank):
                  where name=? and rank=?", (staff_name, rank))
     rows = cursor.fetchall()
     if rows:
-        for row in rows:
-            print(row)
+        print(rows[0][0])
     else:
         print(rank + " " + staff_name + " does not exist!")
     cursor.close()
@@ -411,8 +447,7 @@ def get_access_level_of_a_staff(staff_name, rank):
                  where name=? and rank=?", (staff_name, rank))
     rows = cursor.fetchall()
     if rows:
-        for row in rows:
-            print(row)
+        print(rows[0][0])
     else:
         print(rank + " " + staff_name + " does not exist!")
     cursor.close()
@@ -1280,16 +1315,16 @@ def if_tow_circle_overlaps(longitude1, longitude2, latitude1, latitude2, radius1
 
 # create_training_set()
 #
-c = conn.cursor()
-c.execute('''CREATE TABLE links
-            (ID1 INT not null,
-            ID2 INT not null,
-            type varchar not null,
-            online boolean not null,
-            channel varchar not null,
-            primary key (ID1, ID2),
-            foreign key (ID1, ID2) references barracks(ID, ID))''')
-conn.commit()
+#c = conn.cursor()
+#c.execute('''CREATE TABLE links
+#            (ID1 INT not null,
+#            ID2 INT not null,
+#            type varchar not null,
+#            online boolean not null,
+#            channel varchar not null,
+#            primary key (ID1, ID2),
+#            foreign key (ID1, ID2) references barracks(ID, ID))''')
+#conn.commit()
 #sql = "select * from links"
 #cursor = conn.cursor()
 #cursor.execute(sql)
@@ -1299,4 +1334,4 @@ conn.commit()
 #cursor.close()
 #conn.commit()
 # conn.execute(sql)
-conn.close()
+#conn.close()
