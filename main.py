@@ -8,30 +8,43 @@ import numpy as np
 
 sensor_type = {"رادار": "radar",
                "جمر": "jammer",
-               "آنتن": "antenna"}
+               "آنتن": "antenna",
+               "سنسور": "sensor"}
 
 sensor_status = {"آفلاین": "0",
                  "آنلاین": "1"}
 
-area = {"شمال": "north",
-        "شمال غربی": "north west",
-        "شمال شرقی": "north east",
-        "شمال میانه": "middle north",
-        "جنوب": "south",
-        "جنوب غربی": "west south",
-        "حنوب شرقی": "east south",
-        "جنوب میانه": "middle south",
-        "شرق": "east",
-        "شرق میانه": "middle east",
-        "غرب": "west",
-        "غرب میانه": "middle west",
-        "مرکز": "center"}
+rank = {"سرهنگ": "sarhang",
+        "سروان": "sarvan",
+        "امیر": "amir"}
+
+one_part_area = {"شمال": "north",
+                 "جنوب": "south",
+                 "شرق": "east",
+                 "غرب": "west",
+                 "مرکز": "center"}
+
+two_part_area = {"شمال غربی": "north west",
+                 "شمال شرقی": "north east",
+                 "شمال میانه": "middle north",
+                 "جنوب غربی": "west south",
+                 "حنوب شرقی": "east south",
+                 "جنوب میانه": "middle south",
+                 "شرق میانه": "middle east",
+                 "غرب میانه": "middle west"}
 
 parameter = {
     "توان": "power",
     "فرکانس": "frequency",
     "آزیموت": "azimuth"
 }
+
+temp_staff_first_names = ["ali", "reza", "hasan", "hossein", "amir", "hadi", "mahdi", "mohsen", "farshid", "majid",
+                          "saeed", "naser", "nader", "mohamad", "sepehr", "abbas", "mostafa", "jafar", "mehrdad",
+                          "mehran", "mansour", "milad"]
+temp_staff_last_names = ["rad", "hashemi", "nooshi", "fazeli", "rahimi", "sadeqi", "sabouri", "afshari", "mohseni",
+                         "edalat", "amiri", "hosseini", "hasani", "mansouri", "naseri", "naderi", "moradi", "rezaie",
+                         "hamidi", "nouri"]
 
 conn = sqlite3.connect('test.db')
 print("database Opened successfully!")
@@ -425,384 +438,536 @@ def is_staff_active(staff_name, rank):
 
 
 def create_training_set():
-    my_list = []
+    train_list = []
+    ner_intent_dict = {}
     for i in range(1, 1001):
         for key in sensor_type:
-            # "چند سنسور از نوع رادار مربوط به پادگان 1 وجود دارد؟"
-            my_dict = {
-                "text": "چند سنسور از نوع " + str(key) + " مربوط به پادگان " + str(i) + " وجود دارد؟",
-                "slots": {"sensor_type": str(key),
-                          "barracks_name": str(i)},
-                "query": "get_sensor_count_based_on_sensor_type #" + str(sensor_type[key]) + " #" + str(i)
-            }
-            my_list.append(my_dict)
+            if sensor_type != "سنسور":
+                # "چند سنسور از نوع رادار مربوط به پادگان 1 وجود دارد؟"
+                text = "چند سنسور از نوع " + str(key) + " مربوط به پادگان " + str(i) + " وجود دارد؟"
+                train_dict = {
+                    "text": text,
+                    "slots": {"sensor_type_1": str(key),
+                              "barracks_name_1": str(i)},
+                    "query": {"intent": "get_sensor_count_based_on_sensor_type",
+                              "sensor_type_1": str(sensor_type[key]),
+                              "barracks_name_1": str(i)}
+                }
+                train_list.append(train_dict)
+                ner_dict = {
+                    "TEXT": text.split(),
+                    "NERTAGS": [
+                        "O",
+                        "O",
+                        "O",
+                        "O",
+                        "B-sensor_type-1",
+                        "O",
+                        "O",
+                        "O",
+                        "B-barracks_name_1",
+                        "O",
+                        "O"
+                    ],
+                    "NERVALS": {
+                        "sensor_type_1": str(sensor_type[key]),
+                        "barracks_name_1": str(i)
+                    },
+                    "INTENTS": [
+                        "get_sensor_count_based_on_sensor_type"
+                    ]
+                }
+                ner_intent_dict[text] = ner_dict
+
+                # "آیپی سنسور 1 چیست؟"
+                text = "آیپی " + str(key) + " " + str(i) + " چیست؟"
+                text = "آیپی سنسور " + str(i) + " چیست؟ "
+                train_dict = {
+                    "text": text,
+                    "slots": {"sensor_name_1": str(i),
+                              "sensor_type_1": str(key)},
+                    "query": {"intent": "get_sensor_IP",
+                              "sensor_name_1": str(i),
+                              "sensor_type_1": str(sensor_type[key])}
+                }
+                train_list.append(train_dict)
+                ner_dict = {
+                    "TEXT": text.split(),
+                    "NERTAGS": [
+                        "O",
+                        "B-sensor_type_1",
+                        "B-sensor_name_1",
+                        "O"
+                    ],
+                    "NERVALS": {
+                        "sensor_name_1": str(i),
+                        "sensor_type_1": str(sensor_type[key])
+                    },
+                    "INTENTS": [
+                        "get_sensor_IP"
+                    ]
+                }
+                ner_intent_dict[text] = ner_dict
+
+                # "مختصات جغرافیایی سنسور 1 چیست؟"
+                text = "مختصات جغرافیایی " + str(key) + " " + str(i) + "چیست؟"
+                train_dict = {
+                    "text": text,
+                    "slots": {"sensor_name_1": str(i),
+                              "sensor_type_1": str(key)},
+                    "query": {"intent": "get_coordinates_of_sensor",
+                              "sensor_name_1": str(i),
+                              "sensor_type_1": str(sensor_type[key])}
+                }
+                train_list.append(train_dict)
+                ner_dict = {
+                    "TEXT": text.split(),
+                    "NERTAGS": [
+                        "O",
+                        "O",
+                        "B-sensor_type_1",
+                        "B-sensor_name_1",
+                        "O"
+                    ],
+                    "NERVALS": {
+                        "sensor_name_1": str(i),
+                        "sensor_type_1": str(sensor_type[key])
+                    },
+                    "INTENTS": [
+                        "get_coordinates_of_sensor"
+                    ]
+                }
+                ner_intent_dict[text] = ner_dict
+
+                # "پارامترهای مربوط به سنسور 1 دارای چه مقادیری هستند؟"
+                text = "پارامترهای مربوط به " + str(key) + " " + str(i) + " دارای چه مقادیری هستند؟"
+                train_dict = {
+                    "text": text,
+                    "slots": {"sensor_name_1": str(i),
+                              "sensor_type_1": str(key)},
+                    "query": {"intent": "get_all_parameters_of_sensor",
+                              "sensor_name_1": str(i),
+                              "sensor_type_1": str(sensor_type[key])}
+                }
+                train_list.append(train_dict)
+                ner_dict = {
+                    "TEXT": text.split(),
+                    "NERTAGS": [
+                        "O",
+                        "O",
+                        "O",
+                        "B-sensor_type_1",
+                        "B-sensor_name_1",
+                        "O",
+                        "O",
+                        "O",
+                        "O"
+                    ],
+                    "NERVALS": {
+                        "sensor_name_1": str(i),
+                        "sensor_type_1": str(sensor_type[key])
+                    },
+                    "INTENTS": [
+                        "get_all_parameters_of_sensor"
+                    ]
+                }
+                ner_intent_dict[text] = ner_dict
+
+                # "سنسورهای دشمن در پادگان 1 کدامند؟"
+                text = str(key) + " های دشمن در پادگان " + str(i) + " کدامند؟"
+                train_dict = {
+                    "text": text,
+                    "slots": {"barracks_name_1": str(i),
+                              "sensor_type_1": str(key)},
+                    "query": {"intent": "get_enemy_sensors_based_on_barracks_id",
+                              "barracks_name_1": str(i),
+                              "sensor_type_1": str(sensor_type[key])}
+                }
+                train_list.append(train_dict)
+                ner_dict = {
+                    "TEXT": text.split(),
+                    "NERTAGS": [
+                        "B-sensor_type_1",
+                        "O",
+                        "O",
+                        "O",
+                        "O",
+                        "B-barracks_name_1",
+                        "O"
+                    ],
+                    "NERVALS": {
+                        "barracks_name_1": str(i),
+                        "sensor_type_1": str(sensor_type[key])
+                    },
+                    "INTENTS": [
+                        "get_enemy_sensors_based_on_barracks_id"
+                    ]
+                }
+                ner_intent_dict[text] = ner_dict
 
             for key2 in parameter:
                 # "رادار 1 با چه فرکانسی کار می کند؟"
-                my_dict = {
-                    "text": str(key) + " " + str(i) + " با چه " + str(key2) + "ی کار می کند؟",
-                    "slots": {"sensor_name": str(i),
-                              "sensor_type": str(key),
-                              "parameter": str(key2)},
-                    "query": "get_parameter_of_sensor_based_on_parameter_type #" + str(i) + " #" + str(
-                        sensor_type[key] + " #" + str(parameter[key2]))
+                text = str(key) + " " + str(i) + " با چه " + str(key2) + " ای کار می کند؟"
+                train_dict = {
+                    "text": text,
+                    "slots": {"sensor_name_1": str(i),
+                              "parameter": str(key2),
+                              "sensor_type_1": str(key)},
+                    "query": {"intent": "get_parameter_of_sensor_based_on_parameter_type",
+                              "sensor_name_1": str(i),
+                              "parameter": str(parameter[key2]),
+                              "sensor_type_1": str(sensor_type[key])}
                 }
-                my_list.append(my_dict)
+                train_list.append(train_dict)
+                ner_dict = {
+                    "TEXT": text.split(),
+                    "NERTAGS": [
+                        "B-sensor_type_1",
+                        "B-sensor_name_1",
+                        "O",
+                        "O",
+                        "B-parameter",
+                        "O",
+                        "O",
+                        "O"
+                    ],
+                    "NERVALS": {
+                        "sensor_type": str(sensor_type[key]),
+                        "sensor_name": str(i),
+                        "parameter": str(parameter[key2])
+                    },
+                    "INTENTS": [
+                        "get_parameter_of_sensor_based_on_parameter_type"
+                    ]
+                }
+                ner_intent_dict[text] = ner_dict
 
-        for key2 in parameter:
-            # "سنسور 1 با چه فرکانسی کار می کند؟"
-            my_dict = {
-                "text": "سنسور " + str(i) + " با چه " + str(key2) + "ی کار می کند؟",
-                "slots": {"sensor_name": str(i),
-                          "sensor_type": "سنسور",
-                          "parameter": str(key2)},
-                "query": "get_parameter_of_sensor_based_on_parameter_type #" + str(i) + " #sensor #" + str(
-                    parameter[key2])
-            }
-            my_list.append(my_dict)
-
-        for key in sensor_status:
-            # "چند سنسور آنلاین مربوط به پادگان 1 وجود دارد؟"
-            my_dict = {
-                "text": "چند سنسور " + str(key) + " مربوط به پادگان " + str(i) + " وجود دارد؟",
-                "slots": {"sensor_status": str(key),
-                          "barracks_name": str(i)},
-                "query": "get_sensor_count_based_on_sensor_status #" + str(sensor_status[key]) + " #" + str(i)
-            }
-            my_list.append(my_dict)
+            for key2 in sensor_status:
+                # "چند سنسور آنلاین مربوط به پادگان 1 وجود دارد؟"
+                text = "چند " + str(key) + " " + str(key2) + " مربوط به پادگان " + str(i) + " وجود دارد؟"
+                train_dict = {
+                    "text": text,
+                    "slots": {"sensor_type_1": str(key),
+                              "sensor_status_1": str(key2),
+                              "barracks_name_1": str(i)},
+                    "query": {"intent": "get_sensor_count_based_on_sensor_status",
+                              "sensor_type_1": str(sensor_type[key]),
+                              "sensor_status_1": str(sensor_status[key2]),
+                              "barracks_name_1": str(i)}
+                }
+                train_list.append(train_dict)
+                ner_dict = {
+                    "TEXT": text.split(),
+                    "NERTAGS": [
+                        "O",
+                        "B-sensor_type_1",
+                        "B-sensor_status_1",
+                        "O",
+                        "O",
+                        "O",
+                        "B-barracks_name_1",
+                        "O",
+                        "O"
+                    ],
+                    "NERVALS": {
+                        "sensor_type_1": str(sensor_type[key]),
+                        "sensor_status_1": str(sensor_status[key2]),
+                        "barracks_name_1": str(i)
+                    },
+                    "INTENTS": [
+                        "get_sensor_count_based_on_sensor_status"
+                    ]
+                }
+                ner_intent_dict[text] = ner_dict
 
         # "پادگان 1 از چه نوع است؟"
-        my_dict = {
-            "text": "پادگان " + str(i) + " از چه نوع است؟ ",
-            "slots": {"barracks_name": str(i)},
-            "query": "get_type_of_barracks #" + str(i)
+        text = "پادگان " + str(i) + " از چه نوع است؟ "
+        train_dict = {
+            "text": text,
+            "slots": {"barracks_name_1": str(i)},
+            "query": {"intent": "get_type_of_barracks",
+                      "barracks_name_1": str(i)}
         }
-        my_list.append(my_dict)
+        train_list.append(train_dict)
+        ner_dict = {
+            "TEXT": text.split(),
+            "NERTAGS": [
+                "O",
+                "B-barracks_name_1",
+                "O",
+                "O",
+                "O",
+                "O"
+            ],
+            "NERVALS": {
+                "barracks_name_1": str(i)
+            },
+            "INTENTS": [
+                "get_type_of_barracks"
+            ]
+        }
+        ner_intent_dict[text] = ner_dict
 
         # "پادگان 1 مربوط به دشمن است یا خود؟"
-        my_dict = {
-            "text": "پادگان " + str(i) + " مربوط به دشمن است یا خود؟ ",
-            "slots": {"barracks_name": str(i)},
-            "query": "is_barracks_insider #" + str(i)
+        text = "پادگان " + str(i) + " مربوط به دشمن است یا خود؟ "
+        train_dict = {
+            "text": text,
+            "slots": {"barracks_name_1": str(i)},
+            "query": {"intent": "is_barracks_insider",
+                      "barracks_name_1": str(i)}
         }
-        my_list.append(my_dict)
+        train_list.append(train_dict)
+        ner_dict = {
+            "TEXT": text.split(),
+            "NERTAGS": [
+                "O",
+                "B-barracks_name_1",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O"
+            ],
+            "NERVALS": {
+                "barracks_name_1": str(i)
+            },
+            "INTENTS": [
+                "is_barracks_insider"
+            ]
+        }
+        ner_intent_dict[text] = ner_dict
 
         # "مختصات جغرافیایی پادگان 1 چیست؟"
-        my_dict = {
-            "text": "مختصات جغرافیایی پادگان " + str(i) + " چیست؟ ",
-            "slots": {"barracks_name": str(i)},
-            "query": "get_coordinates_of_barracks #" + str(i)
+        text = "مختصات جغرافیایی پادگان " + str(i) + " چیست؟ ",
+        train_dict = {
+            "text": text,
+            "slots": {"barracks_name_1": str(i)},
+            "query": {"intent": "get_coordinates_of_barracks",
+                      "barracks_name_1": str(i)}
         }
-        my_list.append(my_dict)
-
-        # "آیپی سنسور 1 چیست؟"
-        my_dict = {
-            "text": "آیپی سنسور " + str(i) + " چیست؟ ",
-            "slots": {"sensor_name": str(i)},
-            "query": "get_sensor_IP #" + str(i)
+        train_list.append(train_dict)
+        ner_dict = {
+            "TEXT": text.split(),
+            "NERTAGS": [
+                "O",
+                "O",
+                "O",
+                "B-barracks_name_1",
+                "O"
+            ],
+            "NERVALS": {
+                "barracks_name_1": str(i)
+            },
+            "INTENTS": [
+                "get_coordinates_of_barracks"
+            ]
         }
-        my_list.append(my_dict)
+        ner_intent_dict[text] = ner_dict
 
         # "سنسور 1 از چه نوع است؟"
-        my_dict = {
-            "text": "سنسور " + str(i) + " از چه نوع است؟ ",
-            "slots": {"sensor_name": str(i)},
-            "query": "get_sensor_type #" + str(i)
+        text = "سنسور " + str(i) + " از چه نوع است؟ "
+        train_dict = {
+            "text": text,
+            "slots": {"sensor_name_1": str(i)},
+            "query": {"intent": "get_sensor_type",
+                      "sensor_name_1": str(i)}
         }
-        my_list.append(my_dict)
-
-        # "مختصات جغرافیایی سنسور 1 چیست؟"
-        my_dict = {
-            "text": "مختصات جغرافیایی سنسور " + str(i) + " چیست؟ ",
-            "slots": {"sensor_name": str(i)},
-            "query": "get_coordinates_of_sensor #" + str(i)
+        train_list.append(train_dict)
+        ner_dict = {
+            "TEXT": text.split(),
+            "NERTAGS": [
+                "O",
+                "B-sensor_name_1",
+                "O",
+                "O",
+                "O",
+                "O"
+            ],
+            "NERVALS": {
+                "sensor_name_1": str(i)
+            },
+            "INTENTS": [
+                "get_sensor_type"
+            ]
         }
-        my_list.append(my_dict)
-
-        # "پارامترهای مربوط به سنسور 1 دارای چه مقادیری هستند؟"
-        my_dict = {
-            "text": "پارامتر های مربوط به سنسور " + str(i) + " دارای چه مقادیری هستند؟ ",
-            "slots": {"sensor_name": str(i)},
-            "query": "get_all_parameters_of_sensor #" + str(i)
-        }
-        my_list.append(my_dict)
+        ner_intent_dict[text] = ner_dict
 
         # "پادگان های دشمن کدامند؟"
-        my_dict = {
-            "text": "پادگان های دشمن کدامند؟ ",
+        text = "پادگان های دشمن کدامند؟ ",
+        train_dict = {
+            "text": text,
             "slots": {},
-            "query": "get_enemy_barracks"
+            "query": {"intent": "get_enemy_barracks"}
         }
-        my_list.append(my_dict)
-
-        # "سنسورهای دشمن در پادگان 1 کدامند؟"
-        my_dict = {
-            "text": "سنسور های دشمن در پادگان " + str(i) + " کدامند؟ ",
-            "slots": {"barracks_name": str(i)},
-            "query": "get_enemy_sensors_based_on_barracks_id #" + str(i)
+        train_list.append(train_dict)
+        ner_dict = {
+            "TEXT": text.split(),
+            "NERTAGS": [
+                "O",
+                "O",
+                "O",
+                "O"
+            ],
+            "NERVALS": {
+            },
+            "INTENTS": [
+                "get_enemy_barracks"
+            ]
         }
-        my_list.append(my_dict)
+        ner_intent_dict[text] = ner_dict
 
-    for key2 in area:
+    for key2 in one_part_area:
         for key in sensor_type:
             # "رادارهای جنوب کشور چه وضعیتی دارند؟"
-            my_dict = {
-                "text": str(key) + " های " + str(key2) + " کشور چه وضعیتی دارند؟",
-                "slots": {"sensor_type": str(key),
+            text = str(key) + " های " + str(key2) + " کشور چه وضعیتی دارند؟"
+            train_dict = {
+                "text": text,
+                "slots": {"sensor_type_1": str(key),
                           "area": str(key2)},
-                "query": "get_sensors_status_based_on_location_and_sensor_type #" + str(sensor_type[key]) + " #" + str(
-                    area[key2])
+                "query": {"intent": "get_sensors_status_based_on_location_and_sensor_type",
+                          "sensor_type_1": str(sensor_type[key]),
+                          "area": str(one_part_area[key2])}
             }
-            my_list.append(my_dict)
+            train_list.append(train_dict)
+            ner_dict = {
+                "TEXT": text.split(),
+                "NERTAGS": [
+                    "B-sensor_type_1",
+                    "O",
+                    "B-area",
+                    "O",
+                    "O",
+                    "O",
+                    "O"
+                ],
+                "NERVALS": {
+                    "sensor_type_1": str(sensor_type[key]),
+                    "area": str(one_part_area[key2])
+                },
+                "INTENTS": [
+                    "get_enemy_sensors_based_on_barracks_id"
+                ]
+            }
+            ner_intent_dict[text] = ner_dict
 
-        # "سنسورهای جنوب کشور چه وضعیتی دارند؟"
-        my_dict = {
-            "text": "سنسور های " + str(key2) + " کشور چه وضعیتی دارند؟",
-            "slots": {"sensor_type": "سنسور",
-                      "area": str(key2)},
-            "query": "get_sensors_status_based_on_location_and_sensor_type #sensor #" + str(area[key2])
-        }
-        my_list.append(my_dict)
+    for key2 in two_part_area:
+        for key in sensor_type:
+            # "رادارهای جنوب شرقی کشور چه وضعیتی دارند؟"
+            text = str(key) + " های " + str(key2) + " کشور چه وضعیتی دارند؟"
+            train_dict = {
+                "text": text,
+                "slots": {"sensor_type_1": str(key),
+                          "area": str(key2)},
+                "query": {"intent": "get_sensors_status_based_on_location_and_sensor_type",
+                          "sensor_type_1": str(sensor_type[key]),
+                          "area": str(two_part_area[key2])}
+            }
+            train_list.append(train_dict)
+            ner_dict = {
+                "TEXT": text.split(),
+                "NERTAGS": [
+                    "B-sensor_type_1",
+                    "O",
+                    "B-area",
+                    "I-area",
+                    "O",
+                    "O",
+                    "O",
+                    "O"
+                ],
+                "NERVALS": {
+                    "sensor_type_1": str(sensor_type[key]),
+                    "area": str(two_part_area[key2])
+                },
+                "INTENTS": [
+                    "get_sensors_status_based_on_location_and_sensor_type"
+                ]
+            }
+            ner_intent_dict[text] = ner_dict
 
     for key in range(1, 1001):
         for key2 in range(1, 1001):
             for type1 in sensor_type:
                 for type2 in sensor_type:
                     # "حوزه استحفاظی رادار 1 با حوزه استحفاظی آنتن 2 تداخل دارد؟"
-                    my_dict = {
-                        "text": "حوزه استحفاظی " + str(type1) + " " + str(key) + " با حوزه استحفاظی " + str(
-                            type2) + " " + str(key2) + " تداخل دارد؟",
+                    text = "حوزه استحفاظی " + str(type1) + " " + str(key) + " با حوزه استحفاظی " + str(
+                        type2) + " " + str(key2) + " تداخل دارد؟"
+                    train_dict = {
+                        "text": text,
                         "slots": {"sensor_name_1": str(key),
                                   "sensor_name_2": str(key2),
                                   "sensor_type_1": str(type1),
                                   "sensor_type_2": str(type2)},
-                        "query": "check_if_two_sensors_interfere #" + str(key) + " #" + str(key2) + " #"
-                                 + str(sensor_type[type1]) + " #" + str(sensor_type[type2])
+                        "query": {"intent": "check_if_two_sensors_interfere",
+                                  "sensor_type_1": str(sensor_type[type1]),
+                                  "sensor_type_2": str(sensor_type[type2]),
+                                  "sensor_name_1": str(key),
+                                  "sensor_name_2": str(key2)}
                     }
-                    my_list.append(my_dict)
-
-            # "حوزه استحفاظی سنسور 1 با حوزه استحفاظی سنسور 2 تداخل دارد؟"
-            my_dict = {
-                "text": "حوزه استحفاظی سنسور " + str(key) + " با حوزه استحفاظی سنسور " + " " + str(
-                    key2) + " تداخل دارد؟",
-                "slots": {"sensor_name_1": str(key),
-                          "sensor_name_2": str(key2),
-                          "sensor_type_1": "سنسور",
-                          "sensor_type_2": "سنسور"},
-                "query": "check_if_two_sensors_interfere #" + str(key) + " #" + str(key2) + " #sensor #sensor"
-            }
-            my_list.append(my_dict)
+                    train_list.append(train_dict)
+                    ner_dict = {
+                        "TEXT": text.split(),
+                        "NERTAGS": [
+                            "O",
+                            "O",
+                            "B-sensor_type_1",
+                            "B-sensor_name_1",
+                            "O",
+                            "O",
+                            "O",
+                            "B-sensor_type_2",
+                            "B-sensor_name_2",
+                            "O",
+                            "O"
+                        ],
+                        "NERVALS": {
+                            "sensor_name_1": str(key),
+                            "sensor_name_2": str(key2),
+                            "sensor_type_1": str(sensor_type[type1]),
+                            "sensor_type_2": str(sensor_type[type2])
+                        },
+                        "INTENTS": [
+                            "check_if_two_sensors_interfere"
+                        ]
+                    }
+                    ner_intent_dict[text] = ner_dict
 
     for key in sensor_type:
         # "حوزه استحفاظی چه رادارهایی با هم تداخل ندارند؟"
-        my_dict = {
-            "text": "حوزه استحفاظی چه " + str(key) + " هایی با هم نداخل ندارند؟",
-            "slots": {"sensor_type": str(key)},
-            "query": "get_all_sensors_that_do_not_interfere_based_on_sensor_type #" + str(sensor_type[key])
+        text = "حوزه استحفاظی چه " + str(key) + " هایی با هم نداخل ندارند؟"
+        train_dict = {
+            "text": text,
+            "slots": {"sensor_type_1": str(key)},
+            "query": {"intent": "get_all_sensors_that_do_not_interfere_based_on_sensor_type",
+                      "sensor_type_1": str(sensor_type[key])}
         }
-        my_list.append(my_dict)
+        train_list.append(train_dict)
+        ner_dict = {
+            "TEXT": text.split(),
+            "NERTAGS": [
+                "O",
+                "O",
+                "O",
+                "B-sensor_type_1",
+                "O",
+                "O",
+                "O",
+                "O",
+                "O"
+            ],
+            "NERVALS": {
+                "sensor_type_1": str(sensor_type[key])
+            },
+            "INTENTS": [
+                "get_all_sensors_that_do_not_interfere_based_on_sensor_type"
+            ]
+        }
+        ner_intent_dict[text] = ner_dict
 
-    # "حوزه استحفاظی چه سنسورهایی با هم تداخل ندارند؟"
-    my_dict = {
-        "text": "حوزه استحفاظی چه سنسور هایی با هم تداخل ندارند؟",
-        "slots": {"sensor_type": "سنسور"},
-        "query": "get_all_sensors_that_do_not_interfere_based_on_sensor_type #sensor"
-    }
-    my_list.append(my_dict)
-    for item in my_list:
+    for item in train_list:
         print(item)
-    print(len(my_list))
-
-
-
-def create_ner_intent_json():
-    my_list = []
-    for i in range(1, 1001):
-        for key in sensor_type:
-            # "چند سنسور از نوع رادار مربوط به پادگان 1 وجود دارد؟"
-            my_dict = {
-                "text": "چند سنسور از نوع " + str(key) + " مربوط به پادگان " + str(i) + " وجود دارد؟",
-                "slots": {"sensor_type": str(key),
-                          "barracks_name": str(i)},
-                "query": "get_sensor_count_based_on_sensor_type #" + str(sensor_type[key]) + " #" + str(i)
-            }
-            my_list.append(my_dict)
-
-            for key2 in parameter:
-                # "رادار 1 با چه فرکانسی کار می کند؟"
-                my_dict = {
-                    "text": str(key) + " " + str(i) + " با چه " + str(key2) + "ی کار می کند؟",
-                    "slots": {"sensor_name": str(i),
-                              "sensor_type": str(key),
-                              "parameter": str(key2)},
-                    "query": "get_parameter_of_sensor_based_on_parameter_type #" + str(i) + " #" + str(
-                        sensor_type[key] + " #" + str(parameter[key2]))
-                }
-                my_list.append(my_dict)
-
-        for key2 in parameter:
-            # "سنسور 1 با چه فرکانسی کار می کند؟"
-            my_dict = {
-                "text": "سنسور " + str(i) + " با چه " + str(key2) + "ی کار می کند؟",
-                "slots": {"sensor_name": str(i),
-                          "sensor_type": "سنسور",
-                          "parameter": str(key2)},
-                "query": "get_parameter_of_sensor_based_on_parameter_type #" + str(i) + " #sensor #" + str(
-                    parameter[key2])
-            }
-            my_list.append(my_dict)
-
-        for key in sensor_status:
-            # "چند سنسور آنلاین مربوط به پادگان 1 وجود دارد؟"
-            my_dict = {
-                "text": "چند سنسور " + str(key) + " مربوط به پادگان " + str(i) + " وجود دارد؟",
-                "slots": {"sensor_status": str(key),
-                          "barracks_name": str(i)},
-                "query": "get_sensor_count_based_on_sensor_status #" + str(sensor_status[key]) + " #" + str(i)
-            }
-            my_list.append(my_dict)
-
-        # "پادگان 1 از چه نوع است؟"
-        my_dict = {
-            "text": "پادگان " + str(i) + " از چه نوع است؟ ",
-            "slots": {"barracks_name": str(i)},
-            "query": "get_type_of_barracks #" + str(i)
-        }
-        my_list.append(my_dict)
-
-        # "پادگان 1 مربوط به دشمن است یا خود؟"
-        my_dict = {
-            "text": "پادگان " + str(i) + " مربوط به دشمن است یا خود؟ ",
-            "slots": {"barracks_name": str(i)},
-            "query": "is_barracks_insider #" + str(i)
-        }
-        my_list.append(my_dict)
-
-        # "مختصات جغرافیایی پادگان 1 چیست؟"
-        my_dict = {
-            "text": "مختصات جغرافیایی پادگان " + str(i) + " چیست؟ ",
-            "slots": {"barracks_name": str(i)},
-            "query": "get_coordinates_of_barracks #" + str(i)
-        }
-        my_list.append(my_dict)
-
-        # "آیپی سنسور 1 چیست؟"
-        my_dict = {
-            "text": "آیپی سنسور " + str(i) + " چیست؟ ",
-            "slots": {"sensor_name": str(i)},
-            "query": "get_sensor_IP #" + str(i)
-        }
-        my_list.append(my_dict)
-
-        # "سنسور 1 از چه نوع است؟"
-        my_dict = {
-            "text": "سنسور " + str(i) + " از چه نوع است؟ ",
-            "slots": {"sensor_name": str(i)},
-            "query": "get_sensor_type #" + str(i)
-        }
-        my_list.append(my_dict)
-
-        # "مختصات جغرافیایی سنسور 1 چیست؟"
-        my_dict = {
-            "text": "مختصات جغرافیایی سنسور " + str(i) + " چیست؟ ",
-            "slots": {"sensor_name": str(i)},
-            "query": "get_coordinates_of_sensor #" + str(i)
-        }
-        my_list.append(my_dict)
-
-        # "پارامترهای مربوط به سنسور 1 دارای چه مقادیری هستند؟"
-        my_dict = {
-            "text": "پارامتر های مربوط به سنسور " + str(i) + " دارای چه مقادیری هستند؟ ",
-            "slots": {"sensor_name": str(i)},
-            "query": "get_all_parameters_of_sensor #" + str(i)
-        }
-        my_list.append(my_dict)
-
-        # "پادگان های دشمن کدامند؟"
-        my_dict = {
-            "text": "پادگان های دشمن کدامند؟ ",
-            "slots": {},
-            "query": "get_enemy_barracks"
-        }
-        my_list.append(my_dict)
-
-        # "سنسورهای دشمن در پادگان 1 کدامند؟"
-        my_dict = {
-            "text": "سنسور های دشمن در پادگان " + str(i) + " کدامند؟ ",
-            "slots": {"barracks_name": str(i)},
-            "query": "get_enemy_sensors_based_on_barracks_id #" + str(i)
-        }
-        my_list.append(my_dict)
-
-    for key2 in area:
-        for key in sensor_type:
-            # "رادارهای جنوب کشور چه وضعیتی دارند؟"
-            my_dict = {
-                "text": str(key) + " های " + str(key2) + " کشور چه وضعیتی دارند؟",
-                "slots": {"sensor_type": str(key),
-                          "area": str(key2)},
-                "query": "get_sensors_status_based_on_location_and_sensor_type #" + str(sensor_type[key]) + " #" + str(
-                    area[key2])
-            }
-            my_list.append(my_dict)
-
-        # "سنسورهای جنوب کشور چه وضعیتی دارند؟"
-        my_dict = {
-            "text": "سنسور های " + str(key2) + " کشور چه وضعیتی دارند؟",
-            "slots": {"sensor_type": "سنسور",
-                      "area": str(key2)},
-            "query": "get_sensors_status_based_on_location_and_sensor_type #sensor #" + str(area[key2])
-        }
-        my_list.append(my_dict)
-
-    for key in range(1, 1001):
-        for key2 in range(1, 1001):
-            for type1 in sensor_type:
-                for type2 in sensor_type:
-                    # "حوزه استحفاظی رادار 1 با حوزه استحفاظی آنتن 2 تداخل دارد؟"
-                    my_dict = {
-                        "text": "حوزه استحفاظی " + str(type1) + " " + str(key) + " با حوزه استحفاظی " + str(
-                            type2) + " " + str(key2) + " تداخل دارد؟",
-                        "slots": {"sensor_name_1": str(key),
-                                  "sensor_name_2": str(key2),
-                                  "sensor_type_1": str(type1),
-                                  "sensor_type_2": str(type2)},
-                        "query": "check_if_two_sensors_interfere #" + str(key) + " #" + str(key2) + " #"
-                                 + str(sensor_type[type1]) + " #" + str(sensor_type[type2])
-                    }
-                    my_list.append(my_dict)
-
-            # "حوزه استحفاظی سنسور 1 با حوزه استحفاظی سنسور 2 تداخل دارد؟"
-            my_dict = {
-                "text": "حوزه استحفاظی سنسور " + str(key) + " با حوزه استحفاظی سنسور " + " " + str(
-                    key2) + " تداخل دارد؟",
-                "slots": {"sensor_name_1": str(key),
-                          "sensor_name_2": str(key2),
-                          "sensor_type_1": "سنسور",
-                          "sensor_type_2": "سنسور"},
-                "query": "check_if_two_sensors_interfere #" + str(key) + " #" + str(key2) + " #sensor #sensor"
-            }
-            my_list.append(my_dict)
-
-    for key in sensor_type:
-        # "حوزه استحفاظی چه رادارهایی با هم تداخل ندارند؟"
-        my_dict = {
-            "text": "حوزه استحفاظی چه " + str(key) + " هایی با هم نداخل ندارند؟",
-            "slots": {"sensor_type": str(key)},
-            "query": "get_all_sensors_that_do_not_interfere_based_on_sensor_type #" + str(sensor_type[key])
-        }
-        my_list.append(my_dict)
-
-    # "حوزه استحفاظی چه سنسورهایی با هم تداخل ندارند؟"
-    my_dict = {
-        "text": "حوزه استحفاظی چه سنسور هایی با هم تداخل ندارند؟",
-        "slots": {"sensor_type": "سنسور"},
-        "query": "get_all_sensors_that_do_not_interfere_based_on_sensor_type #sensor"
-    }
-    my_list.append(my_dict)
-    for item in my_list:
-        print(item)
-    print(len(my_list))
+    print(len(train_list))
 
 
 def if_tow_circle_overlaps(longitude1, longitude2, latitude1, latitude2, radius1, radius2):
