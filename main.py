@@ -391,7 +391,6 @@ def get_count_of_barracks_staff_based_on_rank(barracks_name, rank):
 
 
 # "ُسرهنگ # در کدام پادگان حضور دارد؟"
-# todo: create training data for this intent
 def get_barracks_name_of_a_staff(staff_name, rank):
     cursor = conn.cursor()
     cursor.execute("select barracks_ID from staff \
@@ -406,7 +405,6 @@ def get_barracks_name_of_a_staff(staff_name, rank):
 
 
 # "سطح دسترسی سرهنگ # چیست؟"
-# todo: create training data for this intent
 def get_access_level_of_a_staff(staff_name, rank):
     cursor = conn.cursor()
     cursor.execute("select access_level from staff \
@@ -421,7 +419,6 @@ def get_access_level_of_a_staff(staff_name, rank):
 
 
 # "سرهنگ # فعال است یا بلاک؟"
-# todo: create training data for this intent
 def is_staff_active(staff_name, rank):
     cursor = conn.cursor()
     cursor.execute("select active from staff \
@@ -965,8 +962,8 @@ def create_training_set():
         }
         ner_intent_dict[text] = ner_dict
 
-    for i in range(1, 1001):
-        for key in rank:
+    for key in rank:
+        for i in range(1, 1001):
             # "تعداد سرهنگ های پادگان 1 چند تاست؟"
             text = "تعداد " + str(key) + " های پادگان " + str(i) + "چندتاست؟"
             train_dict = {
@@ -985,7 +982,7 @@ def create_training_set():
                     "B-rank",
                     "O",
                     "O",
-                    "B-barracks_name",
+                    "B-barracks_name_1",
                     "O",
                     "O"
                 ],
@@ -998,6 +995,196 @@ def create_training_set():
                 ]
             }
             ner_intent_dict[text] = ner_dict
+
+        for ln in temp_staff_last_names:
+            # "سرهنگ امیری در کدام پادگان حضور دارد؟"
+            text = str(key) + " " + str(ln) + " در کدام پادگان حضور دارد؟"
+            train_dict = {
+                "text": text,
+                "slots": {"staff_name": str(ln),
+                          "rank": str(key)},
+                "query": {"intent": "get_barracks_name_of_a_staff",
+                          "staff_name": str(temp_staff_last_names[ln]),
+                          "rank": str(rank[key])}
+            }
+            train_list.append(train_dict)
+            ner_dict = {
+                "TEXT": text.split(),
+                "NERTAGS": [
+                    "B-rank",
+                    "B-staff_name",
+                    "O",
+                    "O",
+                    "O",
+                    "O",
+                    "O"
+                ],
+                "NERVALS": {
+                    "staff_name": str(temp_staff_last_names[ln]),
+                    "rank": str(rank[key])
+                },
+                "INTENTS": [
+                    "get_barracks_name_of_a_staff"
+                ]
+            }
+            ner_intent_dict[text] = ner_dict
+
+            # "سطح دسترسی سرهنگ امیری چیست؟"
+            text = "سطح دسترسی " + str(key) + " " + str(ln) + " چیست؟"
+            train_dict = {
+                "text": text,
+                "slots": {"staff_name": str(ln),
+                          "rank": str(key)},
+                "query": {"intent": "get_access_level_of_a_staff",
+                          "staff_name": str(temp_staff_last_names[ln]),
+                          "rank": str(rank[key])}
+            }
+            train_list.append(train_dict)
+            ner_dict = {
+                "TEXT": text.split(),
+                "NERTAGS": [
+                    "O",
+                    "O",
+                    "B-rank",
+                    "B-staff_name",
+                    "O"
+                ],
+                "NERVALS": {
+                    "staff_name": str(temp_staff_last_names[ln]),
+                    "rank": str(rank[key])
+                },
+                "INTENTS": [
+                    "get_access_level_of_a_staff"
+                ]
+            }
+            ner_intent_dict[text] = ner_dict
+
+            # "ُسرهنگ امیری فعال است یا بلاک؟"
+            text = str(key) + " " + str(ln) + " فعال است یا بلاک؟"
+            train_dict = {
+                "text": text,
+                "slots": {"staff_name": str(ln),
+                          "rank": str(key)},
+                "query": {"intent": "is_staff_active",
+                          "staff_name": str(temp_staff_last_names[ln]),
+                          "rank": str(rank[key])}
+            }
+            train_list.append(train_dict)
+            ner_dict = {
+                "TEXT": text.split(),
+                "NERTAGS": [
+                    "B-rank",
+                    "B-staff_name",
+                    "O",
+                    "O",
+                    "O",
+                    "O"
+                ],
+                "NERVALS": {
+                    "staff_name": str(temp_staff_last_names[ln]),
+                    "rank": str(rank[key])
+                },
+                "INTENTS": [
+                    "is_staff_active"
+                ]
+            }
+            ner_intent_dict[text] = ner_dict
+
+            for fn in temp_staff_first_names:
+                # "ُسرهنگ رضا امیری در کدام پادگان حضور دارد؟"
+                text = str(key) + " " + str(ln) + " " + str(fn) + " در کدام پادگان حضور دارد؟"
+                train_dict = {
+                    "text": text,
+                    "slots": {"staff_name": str(fn) + " " + str(ln),
+                              "rank": str(key)},
+                    "query": {"intent": "get_barracks_name_of_a_staff",
+                              "staff_name": str(temp_staff_first_names[fn]) + str(temp_staff_last_names[ln]),
+                              "rank": str(rank[key])}
+                }
+                train_list.append(train_dict)
+                ner_dict = {
+                    "TEXT": text.split(),
+                    "NERTAGS": [
+                        "B-rank",
+                        "B-staff_name",
+                        "I-staff_name",
+                        "O",
+                        "O",
+                        "O",
+                        "O"
+                    ],
+                    "NERVALS": {
+                        "staff_name": str(temp_staff_first_names[fn]) + " " + str(temp_staff_last_names[ln]),
+                        "rank": str(rank[key])
+                    },
+                    "INTENTS": [
+                        "get_barracks_name_of_a_staff"
+                    ]
+                }
+                ner_intent_dict[text] = ner_dict
+
+                # "سطح دسترسی سرهنگ رضا امیری چیست؟"
+                text = "سطح دسترسی " + str(key) + " " + str(fn) + " " + str(ln) + " چیست؟"
+                train_dict = {
+                    "text": text,
+                    "slots": {"staff_name": str(fn) + " " + str(ln),
+                              "rank": str(key)},
+                    "query": {"intent": "get_access_level_of_a_staff",
+                              "staff_name": str(temp_staff_first_names[fn]) + str(temp_staff_last_names[ln]),
+                              "rank": str(rank[key])}
+                }
+                train_list.append(train_dict)
+                ner_dict = {
+                    "TEXT": text.split(),
+                    "NERTAGS": [
+                        "O",
+                        "O",
+                        "B-rank",
+                        "B-staff_name",
+                        "I-staff_name",
+                        "O"
+                    ],
+                    "NERVALS": {
+                        "staff_name": str(temp_staff_first_names[fn]) + str(temp_staff_last_names[ln]),
+                        "rank": str(rank[key])
+                    },
+                    "INTENTS": [
+                        "get_access_level_of_a_staff"
+                    ]
+                }
+                ner_intent_dict[text] = ner_dict
+
+                # "سرهنگ رضا امیری فعال است یا بلاک؟"
+                text = str(key) + " " + str(fn) + " " + str(ln) + " فعال است یا بلاک؟"
+                train_dict = {
+                    "text": text,
+                    "slots": {"staff_name": str(fn) + " " + str(ln),
+                              "rank": str(key)},
+                    "query": {"intent": "is_staff_active",
+                              "staff_name": str(temp_staff_first_names[fn]) + str(temp_staff_last_names[ln]),
+                              "rank": str(rank[key])}
+                }
+                train_list.append(train_dict)
+                ner_dict = {
+                    "TEXT": text.split(),
+                    "NERTAGS": [
+                        "B-rank",
+                        "B-staff_name",
+                        "I-staff_name",
+                        "O",
+                        "O",
+                        "O",
+                        "O"
+                    ],
+                    "NERVALS": {
+                        "staff_name": str(temp_staff_first_names[fn]) + str(temp_staff_last_names[ln]),
+                        "rank": str(rank[key])
+                    },
+                    "INTENTS": [
+                        "is_staff_active"
+                    ]
+                }
+                ner_intent_dict[text] = ner_dict
 
     for item in train_list:
         print(item)
